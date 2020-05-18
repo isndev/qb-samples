@@ -29,13 +29,13 @@ class ServerActor
     const std::string _iface;
     const uint16_t _port;
 
-    Session::Protocol::Router<Session> _router;
+    Session::Protocol::Router _router;
 
 public:
     ServerActor() = delete;
     ServerActor(std::string iface, uint16_t port) noexcept;
 
-    Session::Protocol::Router<Session> const &
+    Session::Protocol::Router const &
     router() {
         return _router;
     }
