@@ -15,8 +15,8 @@
 #         limitations under the License.
 #
 
-add_subdirectory(starter)
-add_subdirectory(pingpong)
-add_subdirectory(producer-consumer)
-add_subdirectory(tcp)
-add_subdirectory(elastic)
+project(${QB_PREFIX}-sample-elastic-client)
+
+cxx_executable(${PROJECT_NAME} "${QB_PREFIX}-core qbm-json"
+	main.cpp)
+#target_include_directories(${PROJECT_NAME} PRIVATE "include")

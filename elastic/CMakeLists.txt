@@ -15,8 +15,5 @@
 #         limitations under the License.
 #
 
-add_subdirectory(starter)
-add_subdirectory(pingpong)
-add_subdirectory(producer-consumer)
-add_subdirectory(tcp)
-add_subdirectory(elastic)
+add_subdirectory(client)
+add_subdirectory(server)

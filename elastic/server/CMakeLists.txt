@@ -15,8 +15,13 @@
 #         limitations under the License.
 #
 
-add_subdirectory(starter)
-add_subdirectory(pingpong)
-add_subdirectory(producer-consumer)
-add_subdirectory(tcp)
-add_subdirectory(elastic)
+project(${QB_PREFIX}-sample-elastic-server)
+
+cxx_executable(${PROJECT_NAME} "${QB_PREFIX}-core qbm-json qbm-http"
+	src/AcceptActor.cpp
+	src/SessionJSON.cpp
+	src/SessionJSONActor.cpp
+	src/SessionHTTP.cpp
+	src/SessionHTTPActor.cpp
+	main.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE "include")
