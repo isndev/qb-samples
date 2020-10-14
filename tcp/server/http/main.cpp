@@ -32,7 +32,7 @@ main(int argc, char *argv[]) {
     qb::Main main;
 
     main.core(0)                             // get core initializer
-        .setLowLatency(false)                // try sleep if no events
+        .setLatency(100)                     // try sleep if no events
         .addActor<ServerActor>(iface, port); // add ServerActor
 
     main.start(false);

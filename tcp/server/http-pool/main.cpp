@@ -36,8 +36,8 @@ main(int argc, char *argv[]) {
             main.addActor<SessionPoolActor>(2)
     };
 
-    main.core(0)                             // get core initializer
-        .setLowLatency(false)                // try sleep if no events
+    main.core(0)                                       // get core initializer
+        .setLatency(100)                               // try sleep if no events
         .addActor<AcceptActor>(iface, port, pool_ids); // add ServerActor
 
     main.start(false);

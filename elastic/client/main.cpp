@@ -16,12 +16,24 @@
  */
 
 #include <iostream>
+#include <fstream>
+#include <regex>
+
 #include <qb/main.h>
 #include <qb/actor.h>
 #include <qb/io/async.h>
+#include <qb/io/protocol/text.h>
+#include <qb/io/transport/file.h>
 #include <json/json.h>
 
 struct LoggerTag {};
+
+template <class T>
+inline void hash_combine(std::size_t& seed, const T& v)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
 
 struct LogEvent : public qb::Event {
     qb::json::object log;
@@ -48,7 +60,8 @@ public:
             start(); // register io to listener
             return true;
         }
-        return false;
+        //return false;
+        return true;
     }
 
     // called when client has been disconnected
@@ -66,36 +79,100 @@ public:
 
 };
 
-class CmdActor
+class LogReaderActor
     : public qb::Actor
-    , public qb::ICallback {
+    , public qb::io::use<LogReaderActor>::file {
     // const event pipe to client actor
     const qb::Pipe _logger_pipe;
+    const std::string _log_format;
+    const std::string _fpath;
 
+    const class LogParser {
+    public:
+        using ParsedLogs = qb::unordered_map<std::string, std::string>;
+        using ParameterNames = std::vector<std::string>;
+
+    private:
+        ParameterNames _param_names;
+        //ParsedLogs _parameters;
+        const std::regex _regex;
+
+        std::string
+            init(std::string const& format) {
+            std::string build_regex = format, search = format;
+            const std::regex pieces_regex("\\((\\w+)\\)");
+            std::smatch what;
+            while (std::regex_search(search, what, pieces_regex)) {
+                _param_names.push_back(what[1]);
+                //_parameters.emplace(*_param_names.rbegin(), "");
+                build_regex = build_regex.replace(build_regex.find(what[0]),
+                    what[0].length(), "(.+)");
+                search = what.suffix();
+            }
+
+            return std::move(build_regex);
+        }
+
+    public:
+        explicit LogParser(std::string const& log_format)
+            : _regex(init(log_format)) {}
+
+        ~LogParser() = default;
+
+        template <typename _Path, typename _Func>
+		bool
+		parse(_Path const& path, _Func func) const {
+			std::match_results<typename _Path::const_iterator> what;
+			auto ret = std::regex_match(path.cbegin(), path.cend(), what, _regex);
+			if (ret) {
+				for (size_t i = 1; i < what.size(); ++i) {
+                    func(_param_names[i - 1], what[i].str());
+				}
+			}
+			return ret;
+		}
+    } _parser;
+    
 public:
-    CmdActor() = delete;
+    LogReaderActor() = delete;
+
+    using Protocol = qb::protocol::text::command<LogReaderActor>;
+
     // constructor
-    explicit CmdActor(qb::CoreId const logger_core_id) noexcept
+    explicit LogReaderActor(qb::CoreId const logger_core_id,
+        std::string const &log_format,
+        std::string const &fpath) noexcept
         : _logger_pipe(getPipe(this->getServiceId<LoggerTag>(logger_core_id)))
-    {
-        registerCallback(*this);
+        , _log_format(log_format)
+        , _fpath(fpath)
+        , _parser(log_format)
+    {}
+
+    bool onInit() final {
+        transport().open(_fpath);
+        if (transport().is_open()) {
+            start(_fpath);
+            return true;
+        }
+        return false;
     }
 
-    // called each core loop
-    void onCallback() final {
-        std::string cmd;
-        // /!\ blocking core, but it's ok for the example
-        // CmdActor is alone in its core
-        if (std::getline(std::cin, cmd))
-            _logger_pipe.push<LogEvent>().log = {
-                {"client", "client_cpp"},
-                {"timestamp", time() / 1000000000},
-                {"log", cmd}
-            }; // push pseuo log to logger actor
-        else {
-            _logger_pipe.push<qb::KillEvent>(); // push event to kill client actor
-            kill();                             // kill cmd Actor
+    uint64_t _parsed_line = 0;
+
+    void on(Protocol::message const &data) {
+        if (!data.text.empty()) {
+            auto& log = _logger_pipe.push<LogEvent>().log = {
+                {"file", _fpath},
+                {"ts", time() / 1000000000},
+                {"full_log", data.text },
+            };
+            _parser.parse(data.text, [&log](auto key, auto& value) {
+                //std::cout << "key[" << key << "]value[" << value << "]" << std::endl;
+                log[std::move(key)] = std::move(value);
+             });
         }
+        // futur usage this counter to start from this next time
+        ++_parsed_line;
     }
 };
 
@@ -104,25 +181,42 @@ main(int argc, char *argv[]) {
     // (optional) initialize the logger
     qb::io::log::init(argv[0]); // filepath
     qb::io::log::setLevel(
-        qb::io::log::Level::WARN); // log only warning, error an critical
+        qb::io::log::Level::INFO); // log only warning, error an critical
 
-    // configure the Core
-    qb::Main main;
+    if (argc < 2) {
+        std::cout << "usage: ./qb-sample-elastic-client [Format:(key):(key2)...)] [FILE] [IP?] [PORT?]" << std::endl;
+        return 1;
+    }
+
+    // parser cfg
+    std::string log_format(argv[1]);
+    std::string fpath(argv[2]);
 
     // default connection
     std::string ip = "127.0.0.1";
     uint16_t port = 60123;
-    // usage: ./qb-sample-elastic-client [IP] [PORT]
-    if (argc > 1)
+    // usage: ./qb-sample-elastic-client [Format:(key):(key2)...)] [FILE] [IP?] [PORT?]
+    if (argc > 3)
         ip = argv[1];
-    if (argc > 2)
+    if (argc > 4)
         port = std::atoi(argv[2]);
 
-    main.core(2).addActor<CmdActor>(3);
-    main.core(3).addActor<LoggerActor>(ip, port);
+    // configure the Core
+    qb::Main main;
+
+    main.core(0)
+        .setLatency(100)
+        .addActor<LogReaderActor>(1, log_format, fpath);
+    main.core(1)
+        .setLatency(100)
+        .addActor<LoggerActor>(ip, port);
 
     main.start(); // start the engine asynchronously
-    main.join();  // Wait for the running engine
+    if (!main.hasError()) {
+        std::cout << "Started watching " << fpath << ", listening on " << ip << ":" << port << std::endl;
+        main.join();  // Wait for the running engine
+        std::cout << "Stopped normally";
+    }
     // if all my actors had been destroyed then it will release the wait !
     return 0;
 }

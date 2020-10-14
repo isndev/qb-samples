@@ -31,7 +31,7 @@ main(int argc, char *argv[]) {
 
     qb::Main main;
     main.core(0)                             // index 0
-        .setLowLatency(false)                // low latency not required for sample
+        .setLatency(100)                     // low latency not required for sample
         .setAffinity({1})                    // attach to physical core id 1
         .addActor<ServerActor>(iface, port); // add ServerActor
 
