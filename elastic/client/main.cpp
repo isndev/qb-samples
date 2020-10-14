@@ -39,16 +39,16 @@ struct LogEvent : public qb::Event {
     qb::json::object log;
 };
 
-class LoggerActor : public qb::ServiceActor<LoggerTag>
-                  , public qb::io::use<LoggerActor>::tcp::client<> {
+class LogPusherActor : public qb::ServiceActor<LoggerTag>
+                  , public qb::io::use<LogPusherActor>::tcp::client<> {
     const std::string _host;
     const uint16_t _port;
 
 public:
 
-    using Protocol = qb::json::protocol<LoggerActor>;
+    using Protocol = qb::json::protocol<LogPusherActor>;
 
-    LoggerActor(std::string const& host, uint16_t const port)
+    LogPusherActor(std::string const& host, uint16_t const port)
         : _host(host), _port(port) {
         registerEvent<LogEvent>(*this);
     }
@@ -60,13 +60,13 @@ public:
             start(); // register io to listener
             return true;
         }
-        //return false;
-        return true;
+        return false;
     }
 
     // called when client has been disconnected
     void
     on(qb::io::async::event::disconnected const&) {
+        std::cout << "Disconnected by server" << std::endl;
         // kill all actor
         broadcast<qb::KillEvent>();
     }
@@ -137,6 +137,7 @@ public:
     LogReaderActor() = delete;
 
     using Protocol = qb::protocol::text::command<LogReaderActor>;
+    struct InitReaderEvent : public qb::Event {};
 
     // constructor
     explicit LogReaderActor(qb::CoreId const logger_core_id,
@@ -146,18 +147,29 @@ public:
         , _log_format(log_format)
         , _fpath(fpath)
         , _parser(log_format)
-    {}
+    {
+        registerEvent<InitReaderEvent>(*this);
+    }
 
     bool onInit() final {
         transport().open(_fpath);
         if (transport().is_open()) {
-            start(_fpath);
+            push<InitReaderEvent>(id());
             return true;
         }
         return false;
     }
 
     uint64_t _parsed_line = 0;
+
+    void on(InitReaderEvent const &) {
+        if (read_all() < 0)
+            broadcast<qb::KillEvent>();
+        else {
+            // start io handling
+            start(_fpath, 0.01); // 10ms
+        }
+    }
 
     void on(Protocol::message const &data) {
         if (!data.text.empty()) {
@@ -209,14 +221,15 @@ main(int argc, char *argv[]) {
         .addActor<LogReaderActor>(1, log_format, fpath);
     main.core(1)
         .setLatency(100)
-        .addActor<LoggerActor>(ip, port);
+        .addActor<LogPusherActor>(ip, port);
 
     main.start(); // start the engine asynchronously
     if (!main.hasError()) {
         std::cout << "Started watching " << fpath << ", listening on " << ip << ":" << port << std::endl;
         main.join();  // Wait for the running engine
-        std::cout << "Stopped normally";
-    }
-    // if all my actors had been destroyed then it will release the wait !
+        std::cout << "Stopped normally" << std::endl;
+    } else
+        main.join();  // Wait for the running engine
+    // if all my actors are destroyed then it will release the wait !
     return 0;
 }

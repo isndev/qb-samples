@@ -20,7 +20,6 @@
 #include "SessionJSONActor.h"
 #include "SessionHTTPActor.h"
 #include "DatabaseActor.h"
-//#include "SessionHTTPActor.h"
 
 int
 main(int, char *argv[]) {
@@ -32,11 +31,14 @@ main(int, char *argv[]) {
     // configure the Core
     qb::Main main;
 
-    // step1 one db only
-    auto db_ids = main.core(0).builder()
+    // core db
+    auto db_ids = main.core(1).setLatency(100)
+                      .builder()
         .addActor<DatabaseActor>()
         .idList();
 
+    // core io
+    main.core(0).setLatency(100);
     // json feed part
     auto json_ids = main.core(0).builder()
         .addActor<SessionJSONActor>(db_ids)
