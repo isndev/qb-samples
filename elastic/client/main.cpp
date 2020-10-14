@@ -126,7 +126,7 @@ class LogReaderActor
 			auto ret = std::regex_match(path.cbegin(), path.cend(), what, _regex);
 			if (ret) {
 				for (size_t i = 1; i < what.size(); ++i) {
-                    func(_param_names[i - 1], what[i].str());
+                                    func(_param_names[i - 1], what[i].str());
 				}
 			}
 			return ret;
@@ -166,7 +166,7 @@ public:
                 {"ts", time() / 1000000000},
                 {"full_log", data.text },
             };
-            _parser.parse(data.text, [&log](auto key, auto& value) {
+            _parser.parse(data.text, [&log](auto key, auto value) {
                 //std::cout << "key[" << key << "]value[" << value << "]" << std::endl;
                 log[std::move(key)] = std::move(value);
              });
