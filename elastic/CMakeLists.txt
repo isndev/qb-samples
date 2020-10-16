@@ -15,5 +15,5 @@
 #         limitations under the License.
 #
 
-add_subdirectory(client)
+add_subdirectory(client-log-watcher)
 add_subdirectory(server)

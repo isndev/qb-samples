@@ -15,7 +15,7 @@
 #         limitations under the License.
 #
 
-project(${QB_PREFIX}-sample-elastic-client)
+project(${QB_PREFIX}-sample-elastic-client-log-watcher)
 
 cxx_executable(${PROJECT_NAME} "${QB_PREFIX}-core qbm-json"
 	main.cpp)
