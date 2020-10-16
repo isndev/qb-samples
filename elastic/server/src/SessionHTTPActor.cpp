@@ -71,7 +71,7 @@ void
 SessionHTTPActor::on(GetDataEvent const& e) {
     auto it = sessions().find(e.ident);
     if (it != sessions().end() && it->second.getSessionId() == e.session_id) {
-        qb::http::Response res;
+        auto res = _router.getDefaultResponse();
 
         res.status_code = HTTP_STATUS_OK;
         res.headers["Content-Type"] = { "application/json" };

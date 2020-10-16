@@ -19,12 +19,11 @@
 #define QB_SAMPLE_PROJECT_DATABASEACTOR_H
 #include <qb/actor.h>
 #include "event/NewDataEvent.h"
-//#include "event/GetDataEvent.h"
+#include "event/GetDataEvent.h"
 
 class DatabaseActor : public qb::Actor {
     qb::json::object _storage;
 
-    //static bool 
 public:
 
     DatabaseActor() {

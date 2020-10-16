@@ -19,4 +19,4 @@ project(${QB_PREFIX}-sample-elastic-client)
 
 cxx_executable(${PROJECT_NAME} "${QB_PREFIX}-core qbm-json"
 	main.cpp)
-#target_include_directories(${PROJECT_NAME} PRIVATE "include")
+target_include_directories(${PROJECT_NAME} PRIVATE "include")
