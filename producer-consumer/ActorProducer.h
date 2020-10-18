@@ -27,7 +27,7 @@ class ActorProducer
     : public qb::Actor     // /!\ should inherit from qb actor
     , public qb::ICallback // (optional) required to register actor callback
 {
-    std::vector<qb::ActorId> const &_consumerIds;
+    qb::ActorIdList const &_consumerIds;
     std::random_device _rand_dev;
     std::mt19937 _generator;
     std::uniform_int_distribution<int> _random_number;
@@ -35,7 +35,7 @@ class ActorProducer
 public:
     ActorProducer() = delete; // delete default constructor
     explicit ActorProducer(
-        std::vector<qb::ActorId> const &ids) // constructor with parameters
+        qb::ActorIdList const &ids) // constructor with parameters
         : _consumerIds(ids)
         , _rand_dev()
         , _generator(_rand_dev())

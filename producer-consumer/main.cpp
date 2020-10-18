@@ -36,10 +36,11 @@ main(int, char *argv[]) {
     for (int i = 0; i < nb_consumer; ++i)
         builder0.addActor<ActorConsumer>();
     // check if builder has add all consumers
+    auto producer_ids = builder0.idList();
     if (builder0) {
         auto builder1 = main.core(1).builder();
         for (int i = 0; i < nb_producer; ++i)
-            builder1.addActor<ActorProducer>(builder0.idList());
+            builder1.addActor<ActorProducer>(producer_ids);
         if (!builder1)
             return 1;
     } else
