@@ -25,3 +25,6 @@ cxx_executable(${PROJECT_NAME} "${QB_PREFIX}-core qbm-json qbm-http"
 	src/SessionHTTPActor.cpp
 	main.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE "include")
+
+file(COPY config.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY config_multi.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

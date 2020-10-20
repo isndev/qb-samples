@@ -1,0 +1,31 @@
+{
+  "JSONAcceptor": [
+    {
+      "core": 0,
+      "listen": "0.0.0.0",
+      "port": 60123
+    }
+  ],
+  "HTTPAcceptor": [
+    {
+      "core": 0,
+      "listen": "0.0.0.0",
+      "port": 8080
+    }
+  ],
+  "JSONSessionHandler": [
+    {
+      "core": 0
+    }
+  ],
+  "HTTPSessionHandler": [
+    {
+      "core": 0
+    }
+  ],
+  "Database": [
+    {
+      "core": 1
+    }
+  ]
+}
