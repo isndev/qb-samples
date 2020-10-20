@@ -32,7 +32,7 @@ Usage
   - **N** JSONSessionHandler - receive logs asynchronously and forward them to Database
   - **N** HTTPAcceptor - listen [interface:port], accept and forward sessions using a naive round robin to HTTPSessionHandler(s)
   - **N** HTTPSessionHandler - receive http requests, ask to database and send back requested logs
-  - Database - store logs in memory
+  - Database - store logs in memory <br>
 ex: 2 cores configuration
 ```json
 {
